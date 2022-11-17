@@ -3,12 +3,12 @@
         {
             "eventVersion": "2.1",
             "eventSource": "aws:s3",
-            "awsRegion": "us-east-1",
+            "awsRegion": "ap-south-1",
             "eventTime": "2021-07-01T12:51:27.423Z",
             "s3": {
                 "bucket": {
-                    "name": "s3-differ",
-                    "arn": "arn:aws:s3:::s3-differ"
+                    "name": "<S3 Bucket Name>",
+                    "arn": "<S3 BUCKET ARN>"
                 },
                 "object": {
                     "key": "test.txt",

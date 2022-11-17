@@ -1,14 +1,10 @@
-/*! Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *  SPDX-License-Identifier: MIT-0
- */
-
 'use strict'
 
 const { compareS3 } = require('./compareS3')
-const { deleteS3 } = require('./deleteS3')
+const { notifySNS } = require('./notifySNS')
 
 const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
+AWS.config.region = process.env.AWS_REGION
 const s3 = new AWS.S3()
 
 const processS3 = async (record) => {
@@ -22,36 +18,59 @@ const processS3 = async (record) => {
       Prefix: Key
     }).promise()
 
-    console.log (JSON.stringify(data, null, 2))
-    
-   // Sort versions by date (ascending by LastModified)
+    console.log(JSON.stringify(data, null, 2))
+
     const versions = data.Versions
-    const sortedVersions = versions.sort((a,b) => new Date(a.LastModified) - new Date(b.LastModified))
 
-    // Add version number
-    for (let i = 0; i < sortedVersions.length; i++) {
-      sortedVersions[i].VersionNumber = i + 1
-      sortedVersions[i].BucketName = record.s3.bucket.name
+    // If there was an old version
+    if (versions.length > 1) {
+
+      // Sort versions by date (ascending by LastModified)
+      const sortedVersions = versions.sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified))
+
+      // Add version number
+      for (let i = 0; i < sortedVersions.length; i++) {
+        sortedVersions[i].VersionNumber = i + 1
+        sortedVersions[i].BucketName = record.s3.bucket.name
+      }
+
+      console.log(sortedVersions)
+
+      // Get diff of last two versions
+      const diffResult = await compareS3(sortedVersions[sortedVersions.length - 2], sortedVersions[sortedVersions.length - 1])
+      console.log('Diff: ', diffResult)
+
+      var fileChanged = false
+
+      //File is changed if any element of diffResult contains either a added or removed key
+      for (let i = 0; i < diffResult.length; i++) {
+        if ("added" in diffResult[i] || "removed" in diffResult[i]) {
+          console.log("Changed")
+          fileChanged = true
+          break;
+        }
+      }
+
+      //Notify SNS on file change
+      if (fileChanged) {
+        await notifySNS(record.s3.bucket.name, Key, diffResult)
+      }
+      else {
+        console.log("No Difference with previous version. Sleep Tight")
+      }
     }
-    console.log(sortedVersions)
-    
-    // Get diff of last two versions
-    const result = await compareS3(sortedVersions[sortedVersions.length - 2], sortedVersions[sortedVersions.length - 1])
-    console.log('Diff: ', result)
 
-    // Only continue there are more versions that we should keep
-    if (data.Versions.length <= process.env.KEEP_VERSIONS) {
-      return console.log("Not enough versions for deletion - exit")
+
+    //If there was no version before
+    else {
+      console.log("No Old Version Found. So Far So Good")
     }
 
-    // Delete older versions
-    await deleteS3(sortedVersions)
-    
+    //You are compliant
   } catch (err) {
     console.error(err)
   }
 }
 
 module.exports = { processS3 }
-
 

@@ -1,12 +1,9 @@
-/*! Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *  SPDX-License-Identifier: MIT-0
- */
-
 // Mock event
 const event = require('./testEvent.json')
 
 // Mock environment variables
-process.env.AWS_REGION = 'us-east-1'
+process.env.AWS_REGION = 'ap-south-1'
+process.env.SNS_TOPIC = '<SNS TOPIC ARN>'
 process.env.localTest = true
 process.env.KEEP_VERSIONS = 3
 

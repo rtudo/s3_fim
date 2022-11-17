@@ -1,71 +1,36 @@
-# Amazon S3 diff checker
+# Amazon S3 FIM
 
-The AWS SAM template deploys an AWS Lambda function and an Amazon S3 bucket with versioning enabled. The Lambda function is invoked when new objects are put into the bucket.
+Serves Compliances requirement like that of PCI DSS
 
-When versions of an object are uploaded, it logs out the difference between the latest version and the previous version. Using a configurable setting in template.yaml, it also deletes earlier versions of the object, retaining the most recent versions.
+This repository contains src code required for AWS Lambda function. The Lambda function is invoked when new objects are put into the bucket. If there is any difference detected between the uploaded version of the object and the previous version, a notification is pushed to a SNS Topic. 
 
-Important: this application uses various AWS services and there are costs associated with these services after the Free Tier usage - please see the [AWS Pricing page](https://aws.amazon.com/pricing/) for details. You are responsible for any AWS costs incurred. No warranty is implied in this example.
+- Amazon S3 bucket with versioning enabled is required
+- Permission for s3 to invoke the lambda function
+- Amazon SNS topic with permission for lambda to publish
 
-To learn more about how this application works, see the article on the AWS Compute Blog: https://aws.amazon.com/blogs/compute/building-a-difference-checker-with-amazon-s3-and-aws-lambda/.
-
+### Structure
 ```bash
 .
 ├── README.MD                   <-- This instructions file
 ├── src                         <-- Source code for a lambda function
 │   └── app.js                  <-- Main Lambda handler
 │   └── processS3.js            <-- Processes each S3 object
-│   └── deleteS3.js             <-- Removes earlier versions of an object
+│   └── notify.js               <-- Notify the difference to a SNS Topic
 │   └── compareS3.js            <-- Compares most recent two versions
-├── template.yaml               <-- SAM template
 ```
 
-## Requirements
+### Permissions Required
 
-* [Create an AWS account](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html) if you do not already have one and log in. The IAM user that you use must have sufficient permissions to make necessary AWS service calls and manage AWS resources.
-* [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) installed and configured
-* [Git Installed](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-* [AWS Serverless Application Model](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) (AWS SAM) installed
+1. lambda:InvokeFunction on lambda for s3 principal
+2. sns:publish on sns topic Access Policy for lambda principal
+3. sns:publish for iam role for lambda's iam role
 
-## Deployment Instructions
-
-1. Create a new directory, navigate to that directory in a terminal and clone the GitHub repository:
-    ``` 
-    git clone https://github.com/aws-samples/s3-diff-checker
-    ```
-1. From the command line, use AWS SAM to deploy the AWS resources for the pattern as specified in the template.yml file:
-    ```
-    sam build
-    sam deploy --guided
-    ```
-1. During the prompts:
-    * Enter unique S3 bucket name
-    * Enter the desired AWS Region
-    * Allow SAM CLI to create IAM roles with the required permissions.
-
-    Once you have run `sam deploy -guided` mode once and saved arguments to a configuration file (samconfig.toml), you can use `sam deploy` in future to use these defaults.
-  
 ### Testing
 
-1. Upload a TXT file the source S3 bucket.
-2. Make a change and upload again.
-3. Repeat this process, and note the output for the Lambda function, which logs out the differences in the versions and also deletes earlier versions of the object.
+- Update bucket name, region and sns topic arn
+- Upload test.txt twice to your s3 root
+- Install Dependencies 
+- run `node test.js`
 
-## Cleanup
- 
-1. Delete the stack
-    ```bash
-    aws cloudformation delete-stack --stack-name STACK_NAME
-    ```
-1. Confirm the stack has been deleted
-    ```bash
-    aws cloudformation list-stacks --query "StackSummaries[?contains(StackName,'STACK_NAME')].StackStatus"
-    ```
-
-### Questions
-
-Please contact the author or raise an issue on this GitHub repo if you have questions.
-
-----
-Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-
-SPDX-License-Identifier: MIT-0
+### Note : 
+Project is cloned from https://github.com/aws-samples/s3-to-lambda-diff-checker which compares and also deletes the old version as per the threshold. But make sure that this pull request is merged https://github.com/aws-samples/s3-to-lambda-diff-checker/pull/1 before using it as it fixes the critical bug 

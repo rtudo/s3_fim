@@ -4,10 +4,10 @@
   "description": "",
   "main": "app.js",
   "dependencies": {
-    "diff": "latest"
+    "diff": "^5.1.0"
   },
   "devDependencies": {
-    "aws-sdk": "latest"
+    "aws-sdk": "^2.1256.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
